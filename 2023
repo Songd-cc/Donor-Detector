@@ -1,0 +1,619 @@
+import pandas as pd
+df = pd.read_csv('df_2023_treat party_no_names.csv')
+import warnings
+warnings.filterwarnings('ignore')
+
+#1. Data Cleaning
+#1.1 Convert State to numerical values
+state_mapping = {state: number for number, state in enumerate(df['STATE'].unique(), start=1)}
+df['State_num'] = df['STATE'].map(state_mapping)
+
+#1.2 Convert City to numerical values
+df['CITY'] = df['CITY'].replace('BROOKLYN', 'NEW YORK')
+df['CITY'] = df['CITY'].astype(str).str.replace('CITY', '', case=False)
+city_mapping = {city: number for number, city in enumerate(df['CITY'].unique(), start=1)
+df['CITY_num'] = df['CITY'].map(city_mapping)
+
+#1.3 Convert Employer to numerical values
+df['EMPLOYER'] = df['EMPLOYER'].replace({'SELF-EMPLOYED': 'Self-Employed', 'SELF': 'Self-Employed', 'SELF EMPLOYED': 'Self-Employed'})
+df['EMPLOYER'] = df['EMPLOYER'].replace({'NOT EMPLOYED': 'Not-Employed', 'NOT-EMPLOYED': 'Not-Employed', 'UNEMPLOYED': 'Not-Employed'})
+df['EMPLOYER'] = df['EMPLOYER'].fillna('others')                                         
+employer_mapping = {employer: number for number, employer in enumerate(df['EMPLOYER'].unique(), start=1)}
+df['EMPLOYER_num'] = df['EMPLOYER'].map(employer_mapping)
+
+#1.4 Convert Occupation to numerical values
+df['OCCUPATION'] = df['OCCUPATION'].replace({'SELF-EMPLOYED': 'Self-Employed', 'SELF': 'Self-Employed', 'SELF EMPLOYED': 'Self-Employed'})
+df['OCCUPATION'] = df['OCCUPATION'].replace({'NOT EMPLOYED': 'Not-Employed', 'NOT-EMPLOYED': 'Not-Employed', 'UNEMPLOYED': 'Not-Employed'})
+df['OCCUPATION'] = df['OCCUPATION'].fillna('others')
+occupation_mapping = {occupation: number for number, occupation in enumerate(df['OCCUPATION'].unique(), start=1)}
+df['OCCUPATION_num'] = df['OCCUPATION'].map(occupation_mapping)
+df.head(20)
+
+#2. Exploratory Data Analysis
+#2.1 Visualizing quantitative variables Ater cleaning data
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Create a figure and a set of subplots
+fig, axes = plt.subplots(nrows=2, ncols=3, figsize=(20,10))
+
+# Plot data on the (1,1) subplot
+df['party_label'].value_counts().plot(kind='pie', autopct='%1.1f%%', startangle=90, ax=axes[0,0])
+axes[0,0].set_title('Party')
+
+#plot data on the (1,2) subplot
+df['State_num'].plot(kind='hist', bins=30, log = True, ax=axes[0,1])
+axes[0,1].set_title('State')
+
+#plot data on the (1,3) subplot
+
+df['CITY_num'].plot(kind='hist', bins=30, log=True, ax=axes[0, 2])
+axes[0, 2].set_title('City')
+
+# Plot data on the (2,1) subplot
+df['EMPLOYER_num'].map(np.log
+                      ).plot(kind='hist', bins=30, ax=axes[1,0])
+axes[1,0].set_title('Employer')
+
+#plot data on the (2,2) subplot
+df['OCCUPATION_num'].plot(kind='hist', bins=30, ax=axes[1,1])
+axes[1,1].set_title('Occupation')
+
+# Hide the empty subplot at (2,3)
+axes[1, 2].axis('off')
+
+#2.2 State
+# Rename the columns
+selected_rows.columns = ['STATE', 'Republican', 'Democratic']
+# Create a figure with two subplots
+
+# Create a figure with two subplots side by side
+fig, axes = plt.subplots(1, 2, figsize=(10, 6), sharey=True)
+
+# Heatmap for Republican with a different colormap
+sns.heatmap(selected_rows.set_index('STATE')[['Republican']], annot=True, cmap="YlOrRd", fmt=".2%", cbar_kws={'label': 'Ratio'}, ax=axes[0])
+axes[0].set_title('Republican')
+
+# Heatmap for Democratic with a different colormap
+sns.heatmap(selected_rows.set_index('STATE')[['Democratic']], annot=True, cmap="Blues", fmt=".2%", cbar_kws={'label': 'Ratio'}, ax=axes[1])
+axes[1].set_title('Democratic')
+
+# Adjust labels and layout
+plt.xlabel('STATE')
+plt.ylabel('Ratio')
+plt.show()
+
+#2.3 City
+# Rename the columns
+selected_rows.columns = ['CITY', 'Republican', 'Democratic']
+# Create a figure with two subplots
+
+# Create a figure with two subplots side by side
+fig, axes = plt.subplots(1, 2, figsize=(10, 6), sharey=True)
+
+# Heatmap for Republican with a different colormap
+sns.heatmap(selected_rows.set_index('CITY')[['Republican']], annot=True, cmap="YlOrRd", fmt=".2%", cbar_kws={'label': 'Ratio'}, ax=axes[0])
+axes[0].set_title('Republican')
+
+# Heatmap for Democratic with a different colormap
+sns.heatmap(selected_rows.set_index('CITY')[['Democratic']], annot=True, cmap="Blues", fmt=".2%", cbar_kws={'label': 'Ratio'}, ax=axes[1])
+axes[1].set_title('Democratic')
+
+# Adjust labels and layout
+plt.xlabel('CITY')
+plt.ylabel('Ratio')
+plt.show()
+
+#2.4 Employer
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Calculate the frequency of each employer
+employer_counts = df['EMPLOYER'].value_counts()
+
+# Select the top 10 most frequent employers
+top_employers = employer_counts.head(10).index
+
+# Filter the DataFrame to include only the selected employers
+df_selected_employers = df[df['EMPLOYER'].isin(top_employers)]
+
+# Calculate the ratio of each party_label across selected employers
+employer_label_ratio = df_selected_employers.groupby(['EMPLOYER', 'party_label']).size() / df_selected_employers.groupby('EMPLOYER').size()
+
+# Convert the result to a DataFrame and reset the index
+employer_label_ratio = employer_label_ratio.unstack().reset_index()
+
+# Order the rows based on the ratio of party_label with value 1
+employer_label_ratio = employer_label_ratio.sort_values(by=1, ascending=False)
+
+# Rename the columns
+employer_label_ratio.columns = ['EMPLOYER', 'Republican', 'Democratic']
+
+# Create a figure with two subplots side by side
+fig, axes = plt.subplots(1, 2, figsize=(10, 6), sharey=True)
+
+# Heatmap for Republican with a different colormap
+sns.heatmap(employer_label_ratio.set_index('EMPLOYER')[['Republican']], annot=True, cmap="YlOrRd", fmt=".2%", cbar_kws={'label': 'Ratio'}, ax=axes[0])
+axes[0].set_title('Republican')
+
+# Heatmap for Democratic with a different colormap
+sns.heatmap(employer_label_ratio.set_index('EMPLOYER')[['Democratic']], annot=True, cmap="Blues", fmt=".2%", cbar_kws={'label': 'Ratio'}, ax=axes[1])
+axes[1].set_title('Democratic')
+
+# Adjust labels and layout
+plt.xlabel('EMPLOYER')
+plt.ylabel('Ratio')
+plt.show()
+
+#2.5 Occupation
+
+# Convert the result to a DataFrame and reset the index
+occupation_label_ratio = occupation_label_ratio.unstack().reset_index()
+
+# Order the rows based on the ratio of party_label with value 1
+occupation_label_ratio = occupation_label_ratio.sort_values(by=1, ascending=False)
+
+# Rename the columns
+occupation_label_ratio.columns = ['OCCUPATION', 'Republican', 'Democratic']
+
+# Create a figure with two subplots side by side
+fig, axes = plt.subplots(1, 2, figsize=(10, 6), sharey=True)
+
+# Heatmap for Republican with a different colormap
+sns.heatmap(occupation_label_ratio.set_index('OCCUPATION')[['Republican']], annot=True, cmap="YlOrRd", fmt=".2%", cbar_kws={'label': 'Ratio'}, ax=axes[0])
+axes[0].set_title('Republican')
+
+# Heatmap for Democratic with a different colormap
+sns.heatmap(occupation_label_ratio.set_index('OCCUPATION')[['Democratic']], annot=True, cmap="Blues", fmt=".2%", cbar_kws={'label': 'Ratio'}, ax=axes[1])
+axes[1].set_title('Democratic')
+
+# Adjust labels and layout
+plt.xlabel('OCCUPATION')
+plt.ylabel('Ratio')
+plt.show()
+
+#2.6 We observe the correlation between numerical features and target
+df_numerical = pd.DataFrame()
+df_numerical.loc[:, :] = 0
+df_numerical = df[['State_num', 'CITY_num', 'EMPLOYER_num', 'OCCUPATION_num', 'party_label']]
+df_numerical.head()
+
+df_numerical_corr = df_numerical.corr(method = 'pearson')
+df_numerical_corr
+
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Assuming df_numerical is your numerical DataFrame
+plt.figure(figsize=(12, 10))  # Set the figure size (width, height)
+sns.heatmap(df_numerical.corr(), annot=True, cmap='coolwarm', fmt=".2f")  # Customize the heatmap as needed
+
+# Show the plot
+plt.show()
+
+df_numerical.info()
+
+#4. Handling Missing Values(Features)
+# Calculate the number of nulls and the percentage of nulls for each column
+null_counts = df_numerical.isnull().sum()
+null_percentage = (df_numerical.isnull().mean() * 100)
+
+# Set up the matplotlib figure
+fig, ax = plt.subplots(figsize=(25,10))
+
+# Plot number of nulls
+bars = ax.bar(null_counts.index, null_counts, color='blue')
+
+# Add percentage labels to each bar
+for bar, percentage in zip(bars, null_percentage):
+    height = bar.get_height()
+    ax.text(bar.get_x() + bar.get_width() / 2., height, f'{percentage:.3f}%', ha='center', va='bottom')
+
+# Set labels and title
+ax.set_ylabel('Number of Nulls')
+ax.set_xlabel('Columns')
+ax.set_title('Number of Nulls and Percentage in Each Column')
+
+# Add gridlines for better readability
+ax.yaxis.grid(True)
+
+# Show the plot
+plt.show()
+
+df_numerical.isna().sum()
+
+#5. Models
+#Split into train and test data
+from sklearn.model_selection import train_test_split
+train_raw, test_raw = train_test_split(df_numerical, test_size = 0.2, shuffle=False)
+
+features = list(train_raw.columns)
+target = 'party_label'
+features.remove(target)
+
+X_train = train_raw[features]
+y_train = train_raw[target]
+
+X_test = test_raw[features]
+y_test = test_raw[target]
+
+X_train.columns
+
+#5.1 LogisticRegression
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.pipeline import Pipeline
+from sklearn.metrics import accuracy_score, average_precision_score, precision_score, classification_report, confusion_matrix, roc_auc_score
+
+# Initializing and training a Logistic Regression model
+steps_lg = [('rescale', MinMaxScaler()),
+         ('logr', LogisticRegression(random_state=42))]
+model_lg = Pipeline(steps_lg)
+model_lg = model_lg.fit(X_train, y_train)  # Assuming X_train is your training data
+
+y_train_pred = model_lg.predict(X_train)
+y_test_pred = model_lg.predict(X_test)
+
+# Calculate metrics
+precision_train = precision_score(y_train, y_train_pred)
+precision_test = precision_score(y_test, y_test_pred)
+
+accuracy_train = accuracy_score(y_train, y_train_pred)
+accuracy_test = accuracy_score(y_test, y_test_pred)
+
+classification_report_train = classification_report(y_train, y_train_pred)
+classification_report_test = classification_report(y_test, y_test_pred)
+
+confusion_matrix_train = confusion_matrix(y_train, y_train_pred)
+confusion_matrix_test = confusion_matrix(y_test, y_test_pred)
+
+roc_auc_train = roc_auc_score(y_train, model_lg.predict_proba(X_train)[:, 1])
+roc_auc_test = roc_auc_score(y_test, model_lg.predict_proba(X_test)[:, 1])
+
+pr_auc_train = average_precision_score(y_train, model_lg.predict_proba(X_train)[:, 1])
+pr_auc_test = average_precision_score(y_test, model_lg.predict_proba(X_test)[:, 1])
+
+# Printing the metrics
+print(f'Precision_test: {precision_test}')
+print(f'Precision_train: {precision_train}')
+print(f'Accuracy_test: {accuracy_test}')
+print(f'Accuracy_train: {accuracy_train}')
+print('Classification Report_test:\n', classification_report_test)
+print('Classification Report_train:\n', classification_report_train)
+print('Confusion Matrix_test:\n', confusion_matrix_test)
+print('Confusion Matrix_train:\n', confusion_matrix_train)
+print(f'ROC AUC Score_test: {roc_auc_test}')
+print(f'ROC AUC Score_train: {roc_auc_train}')
+print(f'PR AUC Score_test: {pr_auc_test}')
+print(f'PR AUC Score_train: {pr_auc_train}')
+
+from sklearn.metrics import roc_curve, auc
+import matplotlib.pyplot as plt
+
+# Compute ROC curve for train and test sets
+fpr_train, tpr_train, thresholds_train = roc_curve(y_train, model_lg.predict_proba(X_train)[:, 1])
+fpr_test, tpr_test, thresholds_test = roc_curve(y_test, model_lg.predict_proba(X_test)[:, 1])
+
+# Plot ROC curve
+plt.figure(figsize=(8, 6))
+plt.plot(fpr_train, tpr_train, label='Train ROC Curve (AUC = {:.2f})'.format(auc(fpr_train, tpr_train)))
+plt.plot(fpr_test, tpr_test, label='Test ROC Curve (AUC = {:.2f})'.format(auc(fpr_test, tpr_test)))
+plt.plot([0, 1], [0, 1], linestyle='--', label='Random')
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('Receiver Operating Characteristic (ROC) Curve')
+plt.legend()
+plt.show()
+
+from sklearn.metrics import precision_recall_curve, auc
+import matplotlib.pyplot as plt
+
+# Compute Precision-Recall curve for train and test sets
+precision_train, recall_train, thresholds_train = precision_recall_curve(y_train, model_lg.predict_proba(X_train)[:, 1])
+precision_test, recall_test, thresholds_test = precision_recall_curve(y_test, model_lg.predict_proba(X_test)[:, 1])
+
+# Plot Precision-Recall curve
+plt.figure(figsize=(8, 6))
+plt.plot(recall_train, precision_train, label='Train PR Curve (AUC = {:.2f})'.format(auc(recall_train, precision_train)))
+plt.plot(recall_test, precision_test, label='Test PR Curve (AUC = {:.2f})'.format(auc(recall_test, precision_test)))
+plt.xlabel('Recall')
+plt.ylabel('Precision')
+plt.title('Precision-Recall Curve')
+plt.legend()
+plt.show()
+
+coefficients = model_lg.steps[1][1].coef_[0]
+coefficients
+
+#5.2 Random Forest
+from sklearn.ensemble import RandomForestClassifier
+
+steps_rf = [('rescale', MinMaxScaler()),
+            ('rf', RandomForestClassifier(random_state=42))]
+model_rf = Pipeline(steps_rf)
+model_rf.fit(X_train, y_train)
+
+# Make predictions on train and test sets
+y_train_pred = model_rf.predict(X_train)
+y_test_pred = model_rf.predict(X_test)
+
+# Calculate metrics
+precision_train = precision_score(y_train, y_train_pred)
+precision_test = precision_score(y_test, y_test_pred)
+
+accuracy_train = accuracy_score(y_train, y_train_pred)
+accuracy_test = accuracy_score(y_test, y_test_pred)
+
+classification_report_train = classification_report(y_train, y_train_pred)
+classification_report_test = classification_report(y_test, y_test_pred)
+
+confusion_matrix_train = confusion_matrix(y_train, y_train_pred)
+confusion_matrix_test = confusion_matrix(y_test, y_test_pred)
+
+roc_auc_train = roc_auc_score(y_train, model_rf.predict_proba(X_train)[:, 1])
+roc_auc_test = roc_auc_score(y_test, model_rf.predict_proba(X_test)[:, 1])
+
+pr_auc_train = average_precision_score(y_train, model_rf.predict_proba(X_train)[:, 1])
+pr_auc_test = average_precision_score(y_test, model_rf.predict_proba(X_test)[:, 1])
+
+# Printing the metrics
+print(f'Precision_test: {precision_test}')
+print(f'Precision_train: {precision_train}')
+print(f'Accuracy_test: {accuracy_test}')
+print(f'Accuracy_train: {accuracy_train}')
+print('Classification Report_test:\n', classification_report_test)
+print('Classification Report_train:\n', classification_report_train)
+print('Confusion Matrix_test:\n', confusion_matrix_test)
+print('Confusion Matrix_train:\n', confusion_matrix_train)
+print(f'ROC AUC Score_test: {roc_auc_test}')
+print(f'ROC AUC Score_train: {roc_auc_train}')
+print(f'PR AUC Score_test: {pr_auc_test}')
+print(f'PR AUC Score_train: {pr_auc_train}')
+
+from sklearn.metrics import roc_curve, auc
+import matplotlib.pyplot as plt
+
+# Compute ROC curve for train and test sets
+fpr_train, tpr_train, thresholds_train = roc_curve(y_train, model_rf.predict_proba(X_train)[:, 1])
+fpr_test, tpr_test, thresholds_test = roc_curve(y_test, model_rf.predict_proba(X_test)[:, 1])
+
+# Plot ROC curve
+plt.figure(figsize=(8, 6))
+plt.plot(fpr_train, tpr_train, label='Train ROC Curve (AUC = {:.2f})'.format(auc(fpr_train, tpr_train)))
+plt.plot(fpr_test, tpr_test, label='Test ROC Curve (AUC = {:.2f})'.format(auc(fpr_test, tpr_test)))
+plt.plot([0, 1], [0, 1], linestyle='--', label='Random')
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('Receiver Operating Characteristic (ROC) Curve')
+plt.legend()
+plt.show()
+
+from sklearn.metrics import precision_recall_curve, auc
+import matplotlib.pyplot as plt
+
+# Compute Precision-Recall curve for train and test sets
+precision_train, recall_train, thresholds_train = precision_recall_curve(y_train, model_rf.predict_proba(X_train)[:, 1])
+precision_test, recall_test, thresholds_test = precision_recall_curve(y_test, model_rf.predict_proba(X_test)[:, 1])
+
+# Plot Precision-Recall curve
+plt.figure(figsize=(8, 6))
+plt.plot(recall_train, precision_train, label='Train PR Curve (AUC = {:.2f})'.format(auc(recall_train, precision_train)))
+plt.plot(recall_test, precision_test, label='Test PR Curve (AUC = {:.2f})'.format(auc(recall_test, precision_test)))
+plt.xlabel('Recall')
+plt.ylabel('Precision')
+plt.title('Precision-Recall Curve')
+plt.legend()
+plt.show()
+
+importances_rf = model_rf.steps[1][1].feature_importances_
+print(importances_rf)
+
+plt.bar(range(len(importances_rf)), importances_rf, color="r", align = "center")
+plt.xticks(range(len(importances_rf)), ['State_Num', 'City_Num', 'EMPLOYER_num', 'OCCUPATION_num'], rotation = 90)
+
+#5.3 XGBoost
+from xgboost.sklearn import XGBClassifier
+
+steps_xg = [('Rescale', MinMaxScaler()),
+            ('xgbr', XGBClassifier(random_state=42))]
+model_xg = Pipeline(steps_xg)
+model_xg.fit(X_train, y_train)
+
+# Make predictions on train and test sets
+y_train_pred = model_xg.predict(X_train)
+y_test_pred = model_xg.predict(X_test)
+
+
+# Calculate metrics
+precision_train = precision_score(y_train, y_train_pred)
+precision_test = precision_score(y_test, y_test_pred)
+
+accuracy_train = accuracy_score(y_train, y_train_pred)
+accuracy_test = accuracy_score(y_test, y_test_pred)
+
+classification_report_train = classification_report(y_train, y_train_pred)
+classification_report_test = classification_report(y_test, y_test_pred)
+
+confusion_matrix_train = confusion_matrix(y_train, y_train_pred)
+confusion_matrix_test = confusion_matrix(y_test, y_test_pred)
+
+roc_auc_train = roc_auc_score(y_train, model_xg.predict_proba(X_train)[:, 1])
+roc_auc_test = roc_auc_score(y_test, model_xg.predict_proba(X_test)[:, 1])
+
+pr_auc_train = average_precision_score(y_train, model_xg.predict_proba(X_train)[:, 1])
+pr_auc_test = average_precision_score(y_test, model_xg.predict_proba(X_test)[:, 1])
+
+# Printing the metrics
+print(f'Precision_test: {precision_test}')
+print(f'Precision_train: {precision_train}')
+print(f'Accuracy_test: {accuracy_test}')
+print(f'Accuracy_train: {accuracy_train}')
+print('Classification Report_test:\n', classification_report_test)
+print('Classification Report_train:\n', classification_report_train)
+print('Confusion Matrix_test:\n', confusion_matrix_test)
+print('Confusion Matrix_train:\n', confusion_matrix_train)
+print(f'ROC AUC Score_test: {roc_auc_test}')
+print(f'ROC AUC Score_train: {roc_auc_train}')
+print(f'PR AUC Score_test: {pr_auc_test}')
+print(f'PR AUC Score_train: {pr_auc_train}')
+
+from sklearn.metrics import roc_curve, auc
+import matplotlib.pyplot as plt
+
+# Compute ROC curve for train and test sets
+fpr_train, tpr_train, thresholds_train = roc_curve(y_train, model_xg.predict_proba(X_train)[:, 1])
+fpr_test, tpr_test, thresholds_test = roc_curve(y_test, model_xg.predict_proba(X_test)[:, 1])
+
+# Plot ROC curve
+plt.figure(figsize=(8, 6))
+plt.plot(fpr_train, tpr_train, label='Train ROC Curve (AUC = {:.2f})'.format(auc(fpr_train, tpr_train)))
+plt.plot(fpr_test, tpr_test, label='Test ROC Curve (AUC = {:.2f})'.format(auc(fpr_test, tpr_test)))
+plt.plot([0, 1], [0, 1], linestyle='--', label='Random')
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('Receiver Operating Characteristic (ROC) Curve')
+plt.legend()
+plt.show()
+
+# Compute Precision-Recall curve for train and test sets
+precision_train, recall_train, thresholds_train = precision_recall_curve(y_train, model_xg.predict_proba(X_train)[:, 1])
+precision_test, recall_test, thresholds_test = precision_recall_curve(y_test, model_xg.predict_proba(X_test)[:, 1])
+
+# Plot Precision-Recall curve
+plt.figure(figsize=(8, 6))
+plt.plot(recall_train, precision_train, label='Train PR Curve (AUC = {:.2f})'.format(auc(recall_train, precision_train)))
+plt.plot(recall_test, precision_test, label='Test PR Curve (AUC = {:.2f})'.format(auc(recall_test, precision_test)))
+plt.xlabel('Recall')
+plt.ylabel('Precision')
+plt.title('Precision-Recall Curve')
+plt.legend()
+plt.show()
+
+import matplotlib.pylab as plt
+
+importances_xg = model_xg.steps[1][1].feature_importances_
+print(importances_xg)
+
+plt.bar(range(len(importances_xg)), importances_xg, color="r", align = "center")
+plt.xticks(range(len(importances_xg)), ['State_Num', 'City_Num', 'EMPLOYER_num', 'OCCUPATION_num'], rotation = 90)
+
+#Tune the hyperparameters
+from sklearn.model_selection import GridSearchCV
+from xgboost import XGBClassifier
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.pipeline import Pipeline
+from sklearn.metrics import accuracy_score, precision_score, classification_report, confusion_matrix, roc_auc_score
+
+# Assuming you have created an XGBoost Classifier as 'xgbc'
+
+# Create a pipeline with XGBoost Classifier
+pipe_xgbc = Pipeline([('Rescale', MinMaxScaler()),
+                      ('xgbc', XGBClassifier(random_state=42))])
+
+# Define the parameters for grid search
+parameters_xg = {
+    'xgbc__learning_rate': [0.05, 0.1, 0.2, 0.3],
+    'xgbc__n_estimators': [100, 300, 500],
+    'xgbc__max_depth': [3, 5, 10, 15, 20],
+}
+
+# Create GridSearchCV with scoring based on precision
+grid_search_xg = GridSearchCV(pipe_xgbc, parameters_xg, cv=5, scoring='precision', n_jobs=-1)
+
+# Fit GridSearchCV to your data
+grid_search_xg.fit(X_train, y_train)  # X_train and y_train are your training data
+
+# Get the best parameters and best score
+best_params_xg = grid_search_xg.best_params_
+best_precision_xg = grid_search_xg.best_score_
+
+# Train a new model using the best parameters (optional)
+best_model_xg = grid_search_xg.best_estimator_
+
+best_params_xg
+
+import xgboost as xgb
+from sklearn.metrics import precision_score, accuracy_score, classification_report, confusion_matrix, roc_auc_score, average_precision_score, precision_recall_curve, roc_curve
+import matplotlib.pyplot as plt
+
+# Fit the best model using the best parameters found during grid search
+best_model_xg.fit(X_train, y_train)
+
+# Make predictions on train and test sets
+y_train_pred = best_model_xg.predict(X_train)
+y_test_pred = best_model_xg.predict(X_test)
+
+
+# Calculate metrics
+precision_train = precision_score(y_train, y_train_pred)
+precision_test = precision_score(y_test, y_test_pred)
+
+accuracy_train = accuracy_score(y_train, y_train_pred)
+accuracy_test = accuracy_score(y_test, y_test_pred)
+
+classification_report_train = classification_report(y_train, y_train_pred)
+classification_report_test = classification_report(y_test, y_test_pred)
+
+confusion_matrix_train = confusion_matrix(y_train, y_train_pred)
+confusion_matrix_test = confusion_matrix(y_test, y_test_pred)
+
+roc_auc_train = roc_auc_score(y_train, best_model_xg.predict_proba(X_train)[:, 1])
+roc_auc_test = roc_auc_score(y_test, best_model_xg.predict_proba(X_test)[:, 1])
+
+pr_auc_train = average_precision_score(y_train, best_model_xg.predict_proba(X_train)[:, 1])
+pr_auc_test = average_precision_score(y_test, best_model_xg.predict_proba(X_test)[:, 1])
+
+# Printing the metrics
+print(f'Precision_test: {precision_test}')
+print(f'Precision_train: {precision_train}')
+print(f'Accuracy_test: {accuracy_test}')
+print(f'Accuracy_train: {accuracy_train}')
+print('Classification Report_test:\n', classification_report_test)
+print('Classification Report_train:\n', classification_report_train)
+print('Confusion Matrix_test:\n', confusion_matrix_test)
+print('Confusion Matrix_train:\n', confusion_matrix_train)
+print(f'ROC AUC Score_test: {roc_auc_test}')
+print(f'ROC AUC Score_train: {roc_auc_train}')
+print(f'PR AUC Score_test: {pr_auc_test}')
+print(f'PR AUC Score_train: {pr_auc_train}')
+
+from sklearn.metrics import roc_curve, auc
+import matplotlib.pyplot as plt
+
+# Compute ROC curve for train and test sets
+fpr_train, tpr_train, thresholds_train = roc_curve(y_train, best_model_xg.predict_proba(X_train)[:, 1])
+fpr_test, tpr_test, thresholds_test = roc_curve(y_test, best_model_xg.predict_proba(X_test)[:, 1])
+
+# Plot ROC curve
+plt.figure(figsize=(8, 6))
+plt.plot(fpr_train, tpr_train, label='Train ROC Curve (AUC = {:.2f})'.format(auc(fpr_train, tpr_train)))
+plt.plot(fpr_test, tpr_test, label='Test ROC Curve (AUC = {:.2f})'.format(auc(fpr_test, tpr_test)))
+plt.plot([0, 1], [0, 1], linestyle='--', label='Random')
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('Receiver Operating Characteristic (ROC) Curve')
+plt.legend()
+plt.show()
+
+# Compute Precision-Recall curve for train and test sets
+precision_train, recall_train, thresholds_train = precision_recall_curve(y_train, best_model_xg.predict_proba(X_train)[:, 1])
+precision_test, recall_test, thresholds_test = precision_recall_curve(y_test, best_model_xg.predict_proba(X_test)[:, 1])
+
+# Plot Precision-Recall curve
+plt.figure(figsize=(8, 6))
+plt.plot(recall_train, precision_train, label='Train PR Curve (AUC = {:.2f})'.format(auc(recall_train, precision_train)))
+plt.plot(recall_test, precision_test, label='Test PR Curve (AUC = {:.2f})'.format(auc(recall_test, precision_test)))
+plt.xlabel('Recall')
+plt.ylabel('Precision')
+plt.title('Precision-Recall Curve')
+plt.legend()
+plt.show()
+
+import matplotlib.pylab as plt
+
+importances_xg_best = best_model_xg.steps[1][1].feature_importances_
+print(importances_xg_best)
+
+plt.bar(range(len(importances_xg_best)), importances_xg_best, color="r", align = "center")
+plt.xticks(range(len(importances_xg_best)), ['State_Num', 'City_Num', 'EMPLOYER_num', 'OCCUPATION_num'], rotation = 90)
